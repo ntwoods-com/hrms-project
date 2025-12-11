@@ -119,6 +119,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             currentUser = checkAuth();
             if (currentUser) {
+                // Update user info in sidebar
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userRole').textContent = currentUser.role;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                
                 loadIncompleteRequirements();
             }
         });
@@ -133,16 +138,30 @@
             emptyState.style.display = 'none';
 
             try {
-                const response = await apiCall('getIncompleteRequirements', {});
+                // Send request - with no-cors we can't read response
+                await apiCall('getIncompleteRequirements', {
+                    email: currentUser.email
+                });
                 
-                if (response.success && response.requirements) {
-                    displayRequirements(response.requirements);
-                } else {
-                    throw new Error(response.message || 'Failed to load requirements');
-                }
+                showToast('ℹ️ Check Google Sheets for incomplete requirements.', 'info');
+                
+                loadingSpinner.style.display = 'none';
+                
+                // Show info message
+                emptyState.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size: 4rem;">📊</span>
+                        <h3>Check Google Sheets</h3>
+                        <p>Incomplete requirements (Status = "Send Back") are in Google Sheets.<br>
+                        Filter by your email to see your items.</p>
+                        <a href="raise-requirement.html" class="btn btn-primary mt-3">➕ Raise New Requirement</a>
+                    </div>
+                `;
+                emptyState.style.display = 'block';
+                
             } catch (error) {
                 console.error('Error loading requirements:', error);
-                showToast('Failed to load requirements: ' + error.message, 'error');
+                showToast('Network error occurred', 'error');
                 loadingSpinner.style.display = 'none';
                 emptyState.style.display = 'block';
             }
