@@ -1,1 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Scheduling - HRMS HR</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS HR</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="review.html" class="menu-item">
+                    <span class="menu-item-icon">✓</span>
+                    <span>Review Requirements</span>
+                </a>
+                <a href="job-posting.html" class="menu-item">
+                    <span class="menu-item-icon">📢</span>
+                    <span>Job Posting</span>
+                </a>
+                <a href="upload-cv.html" class="menu-item">
+                    <span class="menu-item-icon">📄</span>
+                    <span>Upload CVs</span>
+                </a>
+                <a href="shortlisting.html" class="menu-item">
+                    <span class="menu-item-icon">✂️</span>
+                    <span>Shortlisting</span>
+                </a>
+                <a href="on-call.html" class="menu-item">
+                    <span class="menu-item-icon">📞</span>
+                    <span>On-Call Conversation</span>
+                </a>
+                <a href="owner-discussion.html" class="menu-item">
+                    <span class="menu-item-icon">💼</span>
+                    <span>Owner Discussion</span>
+                </a>
+                <a href="scheduling.html" class="menu-item active">
+                    <span class="menu-item-icon">📅</span>
+                    <span>Interview Scheduling</span>
+                </a>
+                <a href="walk-ins.html" class="menu-item">
+                    <span class="menu-item-icon">🚶</span>
+                    <span>Walk-ins</span>
+                </a>
+                <a href="tests.html" class="menu-item">
+                    <span class="menu-item-icon">✏️</span>
+                    <span>Test Management</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">H</div>
+                    <div class="user-details">
+                        <h4 id="userName">HR User</h4>
+                        <p id="userRole">Human Resources</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Interview Scheduling</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">7</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <div id="loadingSpinner" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading approved candidates...</p>
+                </div>
+
+                <div id="candidatesContainer" style="display: none;">
+                </div>
+
+                <div id="emptyState" style="display: none;">
+                    <div class="empty-state">
+                        <span style="font-size: 4rem;">📅</span>
+                        <h3>No Candidates to Schedule</h3>
+                        <p>No owner-approved candidates available for scheduling.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- WhatsApp Message Modal -->
+    <div id="whatsappModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>📱 WhatsApp Message</h3>
+                <button class="close-modal" onclick="closeWhatsAppModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Message Preview</label>
+                    <textarea id="whatsappMessage" class="form-control" rows="8" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="copyWhatsAppMessage()">📋 Copy Message</button>
+                <button class="btn btn-secondary" onclick="closeWhatsAppModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadCandidates();
+        });
+
+        async function loadCandidates() {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const container = document.getElementById('candidatesContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingSpinner.style.display = 'block';
+            container.style.display = 'none';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await apiCall('getCandidatesForScheduling', {});
+                
+                if (response.success && response.candidates) {
+                    displayCandidates(response.candidates);
+                } else {
+                    throw new Error(response.message || 'Failed to load candidates');
+                }
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                showToast('Failed to load candidates: ' + error.message, 'error');
+                loadingSpinner.style.display = 'none';
+                emptyState.style.display = 'block';
+            }
+        }
+
+        function displayCandidates(candidates) {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const container = document.getElementById('candidatesContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingSpinner.style.display = 'none';
+
+            if (candidates.length === 0) {
+                emptyState.style.display = 'block';
+                container.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '';
+            candidates.forEach((candidate) => {
+                const card = document.createElement('div');
+                card.className = 'card mb-3';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3>📅 ${candidate.name}</h3>
+                        <span class="badge badge-info">${candidate.jobRole}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Mobile:</label>
+                                <span><a href="tel:${candidate.mobile}">${candidate.mobile}</a></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Source:</label>
+                                <span>${candidate.source}</span>
+                            </div>
+                        </div>
+
+                        <form id="form_${candidate.id}" class="mt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Interview Date <span class="text-danger">*</span></label>
+                                        <input type="date" id="date_${candidate.id}" class="form-control" required min="${new Date().toISOString().split('T')[0]}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Interview Time <span class="text-danger">*</span></label>
+                                        <input type="time" id="time_${candidate.id}" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-info" onclick="generateWhatsAppMessage('${candidate.id}', '${candidate.name}', '${candidate.mobile}', '${candidate.jobRole}')">📱 Generate WhatsApp Message</button>
+                                <button type="button" class="btn btn-primary" onclick="confirmScheduling('${candidate.id}')">✓ Confirm Scheduling</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            container.style.display = 'block';
+            emptyState.style.display = 'none';
+        }
+
+        function generateWhatsAppMessage(candidateId, name, mobile, jobRole) {
+            const date = document.getElementById(`date_${candidateId}`).value;
+            const time = document.getElementById(`time_${candidateId}`).value;
+
+            if (!date || !time) {
+                showToast('Please select interview date and time first', 'warning');
+                return;
+            }
+
+            const dateObj = new Date(date);
+            const formattedDate = dateObj.toLocaleDateString('en-IN', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            const message = `
+Dear ${name},
+
+Greetings from N.T Woods Pvt. Ltd.!
+
+We are pleased to inform you that you have been shortlisted for the position of ${jobRole}.
+
+📅 Interview Details:
+Date: ${formattedDate}
+Time: ${time}
+Location: ${CONFIG.INTERVIEW_LOCATION || 'Aligarh, UP'}
+
+Please bring the following documents:
+✓ Updated Resume
+✓ Original ID Proof (Aadhar/PAN)
+✓ Educational Certificates
+✓ Experience Certificates (if any)
+
+Please confirm your availability by replying to this message.
+
+Looking forward to meeting you!
+
+Best Regards,
+HR Team
+N.T Woods Pvt. Ltd.
+            `.trim();
+
+            document.getElementById('whatsappMessage').value = message;
+            document.getElementById('whatsappModal').style.display = 'flex';
+        }
+
+        function closeWhatsAppModal() {
+            document.getElementById('whatsappModal').style.display = 'none';
+        }
+
+        function copyWhatsAppMessage() {
+            const message = document.getElementById('whatsappMessage').value;
+            navigator.clipboard.writeText(message).then(() => {
+                showToast('Message copied to clipboard', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showToast('Failed to copy message', 'error');
+            });
+        }
+
+        async function confirmScheduling(candidateId) {
+            const date = document.getElementById(`date_${candidateId}`).value;
+            const time = document.getElementById(`time_${candidateId}`).value;
+
+            if (!date || !time) {
+                showToast('Please select interview date and time', 'warning');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to confirm this interview scheduling?')) {
+                return;
+            }
+
+            try {
+                const response = await apiCall('scheduleInterview', {
+                    candidateId: candidateId,
+                    interviewDate: date,
+                    interviewTime: time
+                });
+
+                if (response.success) {
+                    showToast('Interview scheduled successfully', 'success');
+                    loadCandidates();
+                } else {
+                    throw new Error(response.message || 'Failed to schedule interview');
+                }
+            } catch (error) {
+                console.error('Error scheduling interview:', error);
+                showToast('Failed to schedule interview: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
 
