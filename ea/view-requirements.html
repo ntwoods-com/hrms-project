@@ -144,6 +144,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             currentUser = checkAuth();
             if (currentUser) {
+                // Update user info in sidebar
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userRole').textContent = currentUser.role;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                
                 loadRequirements();
             }
         });
@@ -158,23 +163,36 @@
             emptyState.style.display = 'none';
 
             try {
-                if (!currentUser) {
-                    throw new Error('User not authenticated');
-                }
-
-                const response = await apiCall('getRequirements', {
-                    raisedBy: currentUser.email
+                // Send request to get requirements
+                // Note: With no-cors mode, we can't read the response
+                // The data is in Google Sheets - check there for actual data
+                await apiCall('getRequirements', {
+                    email: currentUser.email
                 });
                 
-                if (response.success && response.requirements) {
-                    allRequirements = response.requirements;
-                    applyFilters();
-                } else {
-                    throw new Error(response.message || 'Failed to load requirements');
-                }
+                // Since we can't read response with no-cors, show info message
+                showToast('ℹ️ Note: View your requirements in Google Sheets. Data fetching requires CORS setup.', 'info');
+                
+                loadingSpinner.style.display = 'none';
+                
+                // Show message about checking Google Sheets
+                emptyState.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size: 4rem;">📊</span>
+                        <h3>Check Google Sheets for Data</h3>
+                        <p>Your requirements are saved in Google Sheets.<br>
+                        Due to no-cors mode, data cannot be displayed here directly.</p>
+                        <p style="margin-top: 1rem; color: var(--text-muted);">
+                            <strong>Tip:</strong> To view data here, deploy Google Apps Script as a web app with CORS headers.
+                        </p>
+                        <a href="raise-requirement.html" class="btn btn-primary mt-3">➕ Raise New Requirement</a>
+                    </div>
+                `;
+                emptyState.style.display = 'block';
+                
             } catch (error) {
                 console.error('Error loading requirements:', error);
-                showToast('Failed to load requirements: ' + error.message, 'error');
+                showToast('Network error occurred', 'error');
                 loadingSpinner.style.display = 'none';
                 emptyState.style.display = 'block';
             }
