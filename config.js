@@ -6,7 +6,7 @@
 const HRMS_CONFIG = {
     // Google Apps Script Web App URL
     // After deploying your Code.gs, paste the web app URL here
-    API_URL: 'https://script.google.com/macros/s/AKfycbxvlOR7Q69vZuJAAEaJ4gsB3X2HQpgVS_iY8M_9jEaGKzA_KgvrnsBcFkpaJz7EkaoCDQ/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycby0_RaPi3u6CjhAfuyVv2ARoNbk517JrKGfRKV2gEU22UoWlwGcIEqtHLjuZzy-rNptoQ/exec',
     
     // Google OAuth Client ID
     // Get this from Google Cloud Console
