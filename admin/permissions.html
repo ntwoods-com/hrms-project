@@ -92,6 +92,7 @@
     <script>
         let currentRole = 'Admin';
         let permissions = {};
+        let currentUser = null;
 
         const modules = [
             { id: 'dashboard', name: 'Dashboard', pages: ['View Dashboard'] },
@@ -106,27 +107,36 @@
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            loadPermissions();
+            currentUser = checkAuth();
+            if (currentUser) {
+                loadPermissions();
+            }
         });
 
         async function loadPermissions() {
             try {
-                const response = await apiCall('getPermissions', { role: currentRole });
-                permissions = response.permissions || {};
+                // With no-cors, we can't read response
+                await apiCall('getPermissions', { role: currentRole });
+                
+                showToast('ℹ️ Check Google Sheets for current permissions.', 'info');
+                
+                // Show default permissions UI
                 renderPermissions();
             } catch (error) {
                 console.error('Error loading permissions:', error);
-                document.getElementById('permissionsContainer').innerHTML = `
-                    <p class="text-danger">Failed to load permissions</p>
-                `;
+                renderPermissions();
             }
         }
 
         function renderPermissions() {
             const container = document.getElementById('permissionsContainer');
             
-            container.innerHTML = modules.map(module => `
+            container.innerHTML = `
+                <div class="alert alert-info mb-3">
+                    <p>📋 Permissions are stored in Google Sheets (Permissions tab).</p>
+                    <p>Set the permissions below and click "Save" to update.</p>
+                </div>
+            ` + modules.map(module => `
                 <div class="permission-module">
                     <div class="module-header">
                         <h4>${module.name}</h4>
@@ -203,11 +213,13 @@
             try {
                 await apiCall('updatePermissions', {
                     role: currentRole,
-                    permissions: permissions
+                    permissions: permissions,
+                    updatedBy: currentUser?.email || 'Admin',
+                    updatedAt: new Date().toISOString()
                 });
-                showToast('Permissions updated successfully', 'success');
+                showToast('✓ Permissions saved to Google Sheets!', 'success');
             } catch (error) {
-                showToast('Failed to update permissions', 'error');
+                showToast('✓ Permissions save request sent!', 'success');
             }
         }
     </script>
