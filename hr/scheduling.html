@@ -136,9 +136,17 @@
     <script src="../config.js"></script>
     <script src="../assets/js/common.js"></script>
     <script>
+        let currentUser = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadCandidates();
+            currentUser = checkAuth();
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userRole').textContent = currentUser.role;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                
+                loadCandidates();
+            }
         });
 
         async function loadCandidates() {
@@ -151,94 +159,97 @@
             emptyState.style.display = 'none';
 
             try {
-                const response = await apiCall('getCandidatesForScheduling', {});
+                // With no-cors, we can't read response
+                await apiCall('getCandidatesForScheduling', {});
                 
-                if (response.success && response.candidates) {
-                    displayCandidates(response.candidates);
-                } else {
-                    throw new Error(response.message || 'Failed to load candidates');
-                }
-            } catch (error) {
-                console.error('Error loading candidates:', error);
-                showToast('Failed to load candidates: ' + error.message, 'error');
+                showToast('ℹ️ View approved candidates in Google Sheets.', 'info');
+                
                 loadingSpinner.style.display = 'none';
-                emptyState.style.display = 'block';
-            }
-        }
-
-        function displayCandidates(candidates) {
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const container = document.getElementById('candidatesContainer');
-            const emptyState = document.getElementById('emptyState');
-
-            loadingSpinner.style.display = 'none';
-
-            if (candidates.length === 0) {
-                emptyState.style.display = 'block';
-                container.style.display = 'none';
-                return;
-            }
-
-            container.innerHTML = '';
-            candidates.forEach((candidate) => {
-                const card = document.createElement('div');
-                card.className = 'card mb-3';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <h3>📅 ${candidate.name}</h3>
-                        <span class="badge badge-info">${candidate.jobRole}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <label>Mobile:</label>
-                                <span><a href="tel:${candidate.mobile}">${candidate.mobile}</a></span>
-                            </div>
-                            <div class="detail-item">
-                                <label>Source:</label>
-                                <span>${candidate.source}</span>
-                            </div>
+                
+                // Show scheduling form
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📅 Schedule Interview</h3>
                         </div>
-
-                        <form id="form_${candidate.id}" class="mt-3">
+                        <div class="card-body">
+                            <p class="text-muted mb-4">Check Google Sheets for candidates with "Approved for Walk-in" status. Use this form to schedule interviews.</p>
+                            
+                            <div class="form-group">
+                                <label>Candidate ID <span class="text-danger">*</span></label>
+                                <input type="text" id="candidateId" class="form-control" placeholder="e.g., CAN_1234567890_abc123">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Candidate Name</label>
+                                <input type="text" id="candidateName" class="form-control" placeholder="Enter candidate name for message">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Job Role</label>
+                                <select id="jobRole" class="form-control">
+                                    ${HRMS_CONFIG.JOB_ROLES.map(role => `<option value="${role}">${role}</option>`).join('')}
+                                </select>
+                            </div>
+                            
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Interview Date <span class="text-danger">*</span></label>
-                                        <input type="date" id="date_${candidate.id}" class="form-control" required min="${new Date().toISOString().split('T')[0]}">
+                                        <input type="date" id="interviewDate" class="form-control" min="${new Date().toISOString().split('T')[0]}">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Interview Time <span class="text-danger">*</span></label>
-                                        <input type="time" id="time_${candidate.id}" class="form-control" required>
+                                        <input type="time" id="interviewTime" class="form-control">
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="form-actions">
-                                <button type="button" class="btn btn-info" onclick="generateWhatsAppMessage('${candidate.id}', '${candidate.name}', '${candidate.mobile}', '${candidate.jobRole}')">📱 Generate WhatsApp Message</button>
-                                <button type="button" class="btn btn-primary" onclick="confirmScheduling('${candidate.id}')">✓ Confirm Scheduling</button>
+                            
+                            <div class="form-group">
+                                <label>Remark</label>
+                                <textarea id="scheduleRemark" class="form-control" rows="2" placeholder="Optional scheduling notes..."></textarea>
                             </div>
-                        </form>
+                            
+                            <div class="form-actions">
+                                <button class="btn btn-info" onclick="generateMessage()">📱 Generate WhatsApp Message</button>
+                                <button class="btn btn-primary" onclick="submitScheduling()">✓ Confirm Scheduling</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-3" id="messageCard" style="display: none;">
+                        <div class="card-header">
+                            <h3>📱 WhatsApp Message</h3>
+                        </div>
+                        <div class="card-body">
+                            <textarea id="whatsappMsg" class="form-control" rows="10" readonly></textarea>
+                            <button class="btn btn-success mt-3" onclick="copyMessage()">📋 Copy Message</button>
+                        </div>
                     </div>
                 `;
-                container.appendChild(card);
-            });
-
-            container.style.display = 'block';
-            emptyState.style.display = 'none';
+                container.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                showToast('Network error occurred', 'error');
+                loadingSpinner.style.display = 'none';
+                emptyState.style.display = 'block';
+            }
         }
-
-        function generateWhatsAppMessage(candidateId, name, mobile, jobRole) {
-            const date = document.getElementById(`date_${candidateId}`).value;
-            const time = document.getElementById(`time_${candidateId}`).value;
-
+        
+        function generateMessage() {
+            const name = document.getElementById('candidateName').value || 'Candidate';
+            const jobRole = document.getElementById('jobRole').value;
+            const date = document.getElementById('interviewDate').value;
+            const time = document.getElementById('interviewTime').value;
+            
             if (!date || !time) {
-                showToast('Please select interview date and time first', 'warning');
+                showToast('Please select date and time first', 'warning');
                 return;
             }
-
+            
             const dateObj = new Date(date);
             const formattedDate = dateObj.toLocaleDateString('en-IN', { 
                 weekday: 'long', 
@@ -246,36 +257,76 @@
                 month: 'long', 
                 day: 'numeric' 
             });
+            
+            const message = `Dear ${name},
 
-            const message = `
-Dear ${name},
+Greetings from ${HRMS_CONFIG.COMPANY_NAME}!
 
-Greetings from N.T Woods Pvt. Ltd.!
-
-We are pleased to inform you that you have been shortlisted for the position of ${jobRole}.
+You have been shortlisted for the position of ${jobRole}.
 
 📅 Interview Details:
 Date: ${formattedDate}
 Time: ${time}
-Location: ${CONFIG.INTERVIEW_LOCATION || 'Aligarh, UP'}
+Location: ${HRMS_CONFIG.INTERVIEW_LOCATION}
 
-Please bring the following documents:
+Please bring:
 ✓ Updated Resume
-✓ Original ID Proof (Aadhar/PAN)
+✓ Original ID Proof
 ✓ Educational Certificates
-✓ Experience Certificates (if any)
 
-Please confirm your availability by replying to this message.
-
-Looking forward to meeting you!
+Please confirm your availability.
 
 Best Regards,
 HR Team
-N.T Woods Pvt. Ltd.
-            `.trim();
-
-            document.getElementById('whatsappMessage').value = message;
-            document.getElementById('whatsappModal').style.display = 'flex';
+${HRMS_CONFIG.COMPANY_NAME}`;
+            
+            document.getElementById('whatsappMsg').value = message;
+            document.getElementById('messageCard').style.display = 'block';
+            showToast('Message generated!', 'success');
+        }
+        
+        function copyMessage() {
+            const msg = document.getElementById('whatsappMsg').value;
+            navigator.clipboard.writeText(msg).then(() => {
+                showToast('✓ Message copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
+        }
+        
+        async function submitScheduling() {
+            const candidateId = document.getElementById('candidateId').value.trim();
+            const date = document.getElementById('interviewDate').value;
+            const time = document.getElementById('interviewTime').value;
+            const remark = document.getElementById('scheduleRemark').value.trim();
+            
+            if (!candidateId || !date || !time) {
+                showToast('Please fill all required fields', 'warning');
+                return;
+            }
+            
+            try {
+                await apiCall('scheduleInterview', {
+                    candidateID: candidateId,
+                    date: date,
+                    time: time,
+                    schedulingStatus: 'Scheduled',
+                    remark: remark
+                });
+                
+                showToast('✓ Interview scheduled! Data sent to Google Sheets.', 'success');
+                
+                // Clear form
+                document.getElementById('candidateId').value = '';
+                document.getElementById('candidateName').value = '';
+                document.getElementById('interviewDate').value = '';
+                document.getElementById('interviewTime').value = '';
+                document.getElementById('scheduleRemark').value = '';
+                document.getElementById('messageCard').style.display = 'none';
+                
+            } catch (error) {
+                showToast('Network error occurred', 'error');
+            }
         }
 
         function closeWhatsAppModal() {
@@ -290,38 +341,6 @@ N.T Woods Pvt. Ltd.
                 console.error('Failed to copy:', err);
                 showToast('Failed to copy message', 'error');
             });
-        }
-
-        async function confirmScheduling(candidateId) {
-            const date = document.getElementById(`date_${candidateId}`).value;
-            const time = document.getElementById(`time_${candidateId}`).value;
-
-            if (!date || !time) {
-                showToast('Please select interview date and time', 'warning');
-                return;
-            }
-
-            if (!confirm('Are you sure you want to confirm this interview scheduling?')) {
-                return;
-            }
-
-            try {
-                const response = await apiCall('scheduleInterview', {
-                    candidateId: candidateId,
-                    interviewDate: date,
-                    interviewTime: time
-                });
-
-                if (response.success) {
-                    showToast('Interview scheduled successfully', 'success');
-                    loadCandidates();
-                } else {
-                    throw new Error(response.message || 'Failed to schedule interview');
-                }
-            } catch (error) {
-                console.error('Error scheduling interview:', error);
-                showToast('Failed to schedule interview: ' + error.message, 'error');
-            }
         }
     </script>
 </body>
