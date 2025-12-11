@@ -162,12 +162,12 @@
                     throw new Error('User not authenticated');
                 }
 
-                const response = await apiCall('getRequirements', {
-                    raisedBy: currentUser.email
+                const response = await apiGet('getRequirements', {
+                    email: currentUser.email
                 });
                 
-                if (response.success && response.requirements) {
-                    allRequirements = response.requirements;
+                if (response.success && response.data) {
+                    allRequirements = response.data;
                     applyFilters();
                 } else {
                     throw new Error(response.message || 'Failed to load requirements');
