@@ -5,22 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - HRMS</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
-    <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/login.css">
+    <!-- Enhanced CSS -->
+    <link rel="stylesheet" href="assets/css/enhanced.css">
+    <link rel="stylesheet" href="assets/css/login-enhanced.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <div class="logo-section">
-                <h1>🏢 HRMS</h1>
-                <p>N.T Woods Pvt. Ltd.</p>
+    <div class="login-page">
+        <div class="login-container">
+            <!-- Left Side - Branding -->
+            <div class="login-left">
+                <div class="login-brand">
+                    <div class="login-logo">🏢</div>
+                    <h1>HRMS Portal</h1>
+                    <p>Complete Human Resource Management System for modern organizations</p>
+                </div>
+                
+                <div class="login-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">📋</div>
+                        <span class="feature-text">Streamlined Recruitment Process</span>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">👥</div>
+                        <span class="feature-text">Candidate Management</span>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📅</div>
+                        <span class="feature-text">Interview Scheduling</span>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <span class="feature-text">Digital Onboarding</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="login-content">
-                <h2>Welcome Back</h2>
-                <p class="subtitle">Sign in with your Google account to continue</p>
+            <!-- Right Side - Login Form -->
+            <div class="login-right">
+                <div class="login-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in with your Google account to continue</p>
+                </div>
                 
+                <!-- Role Selector -->
+                <div class="role-selector">
+                    <label class="role-selector-label">Select your role:</label>
+                    <div class="role-cards">
+                        <label class="role-card" id="role-admin">
+                            <input type="radio" name="role" value="admin">
+                            <div class="role-card-icon">👑</div>
+                            <div class="role-card-title">Admin</div>
+                        </label>
+                        <label class="role-card" id="role-ea">
+                            <input type="radio" name="role" value="ea">
+                            <div class="role-card-icon">📊</div>
+                            <div class="role-card-title">EA</div>
+                        </label>
+                        <label class="role-card selected" id="role-hr">
+                            <input type="radio" name="role" value="hr" checked>
+                            <div class="role-card-icon">👤</div>
+                            <div class="role-card-title">HR</div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Google Sign-In -->
                 <div id="g_id_onload"
                      data-client_id="1029752642188-ku0k9krbdbsttj9br238glq8h4k5loj3.apps.googleusercontent.com"
                      data-callback="handleCredentialResponse"
@@ -32,20 +82,21 @@
                      data-size="large"
                      data-theme="outline"
                      data-text="sign_in_with"
-                     data-shape="rectangular"
-                     data-logo_alignment="left">
+                     data-shape="pill"
+                     data-logo_alignment="center"
+                     data-width="100%">
                 </div>
                 
-                <div id="loading" class="loading" style="display: none;">
+                <div id="loading" class="login-message" style="display: none;">
                     <div class="spinner"></div>
                     <p>Authenticating...</p>
                 </div>
                 
-                <div id="error-message" class="error-message" style="display: none;"></div>
-            </div>
-            
-            <div class="login-footer">
-                <p>&copy; 2025 N.T Woods Pvt. Ltd. All rights reserved.</p>
+                <div id="error-message" class="login-message error" style="display: none;"></div>
+                
+                <div class="login-footer">
+                    <p>&copy; 2025 N.T Woods Pvt. Ltd. All rights reserved.</p>
+                </div>
             </div>
         </div>
     </div>
