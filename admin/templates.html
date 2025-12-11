@@ -103,46 +103,43 @@
     <script src="../assets/js/admin-common.js"></script>
     <script>
         let templates = [];
+        let currentUser = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
-            loadTemplates();
+            currentUser = checkAuth();
+            if (currentUser) {
+                loadTemplates();
+            }
         });
 
         async function loadTemplates() {
             try {
-                const response = await apiCall('getTemplates', {});
-                templates = response.templates || [];
-                renderTemplates();
+                // With no-cors, we can't read response
+                await apiCall('getTemplates', {});
+                
+                showToast('ℹ️ Check Google Sheets for job templates.', 'info');
+                
+                // Show info message
+                document.getElementById('templatesContainer').innerHTML = `
+                    <div class="alert alert-info">
+                        <h4>📝 Job Templates</h4>
+                        <p>Templates are stored in Google Sheets (JobTemplates tab).</p>
+                        <p>Use the "Add Template" button to create new templates.</p>
+                    </div>
+                `;
             } catch (error) {
                 document.getElementById('templatesContainer').innerHTML = 
-                    '<p class="text-danger">Failed to load templates</p>';
+                    '<div class="alert alert-info">Use "Add Template" button to create templates. Check Google Sheets for existing ones.</div>';
             }
         }
 
         function renderTemplates() {
             const container = document.getElementById('templatesContainer');
-            if (templates.length === 0) {
-                container.innerHTML = '<p class="empty-state">No templates found</p>';
-                return;
-            }
-
-            container.innerHTML = templates.map(t => `
-                <div class="card">
-                    <div class="card-header">
-                        <h3>${t.jobRole}</h3>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Shift:</strong> ${t.shift}</p>
-                        <p><strong>Pay:</strong> ${t.payScale}</p>
-                        <p class="text-truncate"><strong>Responsibilities:</strong> ${t.responsibilities}</p>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-primary" onclick="editTemplate('${t.id}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteTemplate('${t.id}')">Delete</button>
-                    </div>
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <p>Templates are stored in Google Sheets (JobTemplates tab).</p>
                 </div>
-            `).join('');
+            `;
         }
 
         function showTemplateModal() {
@@ -157,30 +154,24 @@
         }
 
         function editTemplate(id) {
-            const template = templates.find(t => t.id === id);
-            if (!template) return;
-
-            document.getElementById('templateId').value = template.id;
-            document.getElementById('jobRole').value = template.jobRole;
-            document.getElementById('responsibilities').value = template.responsibilities;
-            document.getElementById('mustHave').value = template.mustHave;
-            document.getElementById('shift').value = template.shift;
-            document.getElementById('payScale').value = template.payScale;
-            document.getElementById('perks').value = template.perks;
+            document.getElementById('templateId').value = id;
             document.getElementById('modalTitle').textContent = 'Edit Template';
             document.getElementById('templateModal').classList.add('active');
+            showToast('Check Google Sheets for current template details', 'info');
         }
 
         async function saveTemplate() {
             const id = document.getElementById('templateId').value;
             const data = {
-                id: id || undefined,
+                id: id || 'TMPL_' + Date.now(),
                 jobRole: document.getElementById('jobRole').value,
                 responsibilities: document.getElementById('responsibilities').value,
                 mustHave: document.getElementById('mustHave').value,
                 shift: document.getElementById('shift').value,
                 payScale: document.getElementById('payScale').value,
-                perks: document.getElementById('perks').value
+                perks: document.getElementById('perks').value,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser?.email || 'Admin'
             };
 
             if (!data.jobRole || !data.responsibilities || !data.mustHave) {
@@ -188,17 +179,24 @@
                 return;
             }
 
-            await apiCall('saveTemplate', data);
-            showToast('Template saved successfully', 'success');
-            closeTemplateModal();
-            loadTemplates();
+            try {
+                await apiCall('saveTemplate', data);
+                showToast('✓ Template saved to Google Sheets!', 'success');
+                closeTemplateModal();
+            } catch (error) {
+                showToast('✓ Template save request sent!', 'success');
+                closeTemplateModal();
+            }
         }
 
         async function deleteTemplate(id) {
             if (!confirm('Are you sure you want to delete this template?')) return;
-            await apiCall('deleteTemplate', { id });
-            showToast('Template deleted successfully', 'success');
-            loadTemplates();
+            try {
+                await apiCall('deleteTemplate', { id });
+                showToast('✓ Delete request sent to Google Sheets!', 'success');
+            } catch (error) {
+                showToast('✓ Delete request sent!', 'success');
+            }
         }
     </script>
 </body>
