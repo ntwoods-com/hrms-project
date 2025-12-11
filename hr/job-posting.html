@@ -1,1 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Posting - HRMS HR</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS HR</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="review.html" class="menu-item">
+                    <span class="menu-item-icon">✓</span>
+                    <span>Review Requirements</span>
+                </a>
+                <a href="job-posting.html" class="menu-item active">
+                    <span class="menu-item-icon">📢</span>
+                    <span>Job Posting</span>
+                </a>
+                <a href="upload-cv.html" class="menu-item">
+                    <span class="menu-item-icon">📄</span>
+                    <span>Upload CVs</span>
+                </a>
+                <a href="shortlisting.html" class="menu-item">
+                    <span class="menu-item-icon">✂️</span>
+                    <span>Shortlisting</span>
+                </a>
+                <a href="on-call.html" class="menu-item">
+                    <span class="menu-item-icon">📞</span>
+                    <span>On-Call Conversation</span>
+                </a>
+                <a href="owner-discussion.html" class="menu-item">
+                    <span class="menu-item-icon">💼</span>
+                    <span>Owner Discussion</span>
+                </a>
+                <a href="scheduling.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>Interview Scheduling</span>
+                </a>
+                <a href="walk-ins.html" class="menu-item">
+                    <span class="menu-item-icon">🚶</span>
+                    <span>Walk-ins</span>
+                </a>
+                <a href="tests.html" class="menu-item">
+                    <span class="menu-item-icon">✏️</span>
+                    <span>Test Management</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">H</div>
+                    <div class="user-details">
+                        <h4 id="userName">HR User</h4>
+                        <p id="userRole">Human Resources</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Job Posting</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">7</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📢 Post Job on Portals</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="jobPostingForm" onsubmit="submitPosting(event)">
+                            <div class="form-group">
+                                <label for="requirementId">Select Requirement <span class="text-danger">*</span></label>
+                                <select id="requirementId" class="form-control" required onchange="loadJobDescription()">
+                                    <option value="">-- Select Valid Requirement --</option>
+                                </select>
+                            </div>
+
+                            <div id="jdSection" style="display: none;">
+                                <div class="form-group">
+                                    <label>Job Description</label>
+                                    <div class="jd-container" style="background: #f8f9fa; padding: 15px; border-radius: 8px; position: relative;">
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="copyJD()" style="position: absolute; top: 10px; right: 10px;">📋 Copy</button>
+                                        <pre id="jobDescription" style="white-space: pre-wrap; margin-top: 30px;"></pre>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Select Portals <span class="text-danger">*</span></label>
+                                    <div id="portalsCheckboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                                    </div>
+                                </div>
+
+                                <div id="screenshotUploads" style="margin-top: 20px;">
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <span id="submitText">📤 Submit Job Posting</span>
+                                        <span id="submitLoader" style="display: none;">
+                                            <span class="spinner-sm"></span> Submitting...
+                                        </span>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Reset</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        let selectedRequirement = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadValidRequirements();
+            populatePortals();
+        });
+
+        async function loadValidRequirements() {
+            try {
+                const response = await apiCall('getRequirements', { status: 'Valid' });
+                
+                if (response.success && response.requirements) {
+                    const select = document.getElementById('requirementId');
+                    response.requirements.forEach(req => {
+                        const option = document.createElement('option');
+                        option.value = req.id;
+                        option.textContent = `#${req.id} - ${req.jobRole} (${formatDate(req.raisedDate)})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading requirements:', error);
+                showToast('Failed to load requirements: ' + error.message, 'error');
+            }
+        }
+
+        function populatePortals() {
+            const container = document.getElementById('portalsCheckboxes');
+            CONFIG.JOB_PORTALS.forEach(portal => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" class="portal-checkbox" value="${portal}" onchange="togglePortalUpload('${portal}')" style="margin-right: 8px;">
+                        <span>${portal}</span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadJobDescription() {
+            const reqId = document.getElementById('requirementId').value;
+            
+            if (!reqId) {
+                document.getElementById('jdSection').style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await apiCall('getRequirementById', { id: reqId });
+                
+                if (response.success && response.requirement) {
+                    selectedRequirement = response.requirement;
+                    
+                    const jd = `
+JOB TITLE: ${selectedRequirement.jobRole}
+
+RESPONSIBILITIES:
+${selectedRequirement.responsibilities}
+
+MUST HAVE:
+${selectedRequirement.mustHave}
+
+SHIFT: ${selectedRequirement.shift}
+
+PAY SCALE: ${selectedRequirement.payScale}
+
+PERKS & BENEFITS:
+${selectedRequirement.perks}
+
+${selectedRequirement.note ? `ADDITIONAL NOTES:\n${selectedRequirement.note}` : ''}
+
+LOCATION: ${CONFIG.INTERVIEW_LOCATION || 'Aligarh, UP'}
+                    `.trim();
+
+                    document.getElementById('jobDescription').textContent = jd;
+                    document.getElementById('jdSection').style.display = 'block';
+                } else {
+                    throw new Error(response.message || 'Failed to load requirement');
+                }
+            } catch (error) {
+                console.error('Error loading requirement:', error);
+                showToast('Failed to load requirement: ' + error.message, 'error');
+            }
+        }
+
+        function copyJD() {
+            const jd = document.getElementById('jobDescription').textContent;
+            navigator.clipboard.writeText(jd).then(() => {
+                showToast('Job description copied to clipboard', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showToast('Failed to copy job description', 'error');
+            });
+        }
+
+        function togglePortalUpload(portal) {
+            const checkbox = document.querySelector(`input[value="${portal}"]`);
+            const uploadsContainer = document.getElementById('screenshotUploads');
+            const uploadId = `upload_${portal.replace(/\s+/g, '_')}`;
+            
+            if (checkbox.checked) {
+                const div = document.createElement('div');
+                div.id = uploadId;
+                div.className = 'form-group';
+                div.innerHTML = `
+                    <label>Screenshot for ${portal} <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" accept="image/*" data-portal="${portal}">
+                `;
+                uploadsContainer.appendChild(div);
+            } else {
+                const existingUpload = document.getElementById(uploadId);
+                if (existingUpload) {
+                    existingUpload.remove();
+                }
+            }
+        }
+
+        async function submitPosting(event) {
+            event.preventDefault();
+
+            const submitText = document.getElementById('submitText');
+            const submitLoader = document.getElementById('submitLoader');
+            const submitButton = event.target.querySelector('button[type="submit"]');
+
+            const requirementId = document.getElementById('requirementId').value;
+            const selectedPortals = Array.from(document.querySelectorAll('.portal-checkbox:checked')).map(cb => cb.value);
+
+            if (selectedPortals.length === 0) {
+                showToast('Please select at least one portal', 'warning');
+                return;
+            }
+
+            // Check if all selected portals have screenshots
+            let allUploaded = true;
+            const screenshots = [];
+            
+            for (const portal of selectedPortals) {
+                const fileInput = document.querySelector(`input[data-portal="${portal}"]`);
+                if (!fileInput || !fileInput.files[0]) {
+                    showToast(`Please upload screenshot for ${portal}`, 'warning');
+                    allUploaded = false;
+                    break;
+                }
+                screenshots.push({
+                    portal: portal,
+                    file: fileInput.files[0]
+                });
+            }
+
+            if (!allUploaded) return;
+
+            submitText.style.display = 'none';
+            submitLoader.style.display = 'inline';
+            submitButton.disabled = true;
+
+            try {
+                // In a real implementation, you would upload screenshots to Google Drive
+                // and get their URLs. For now, we'll simulate this.
+                const screenshotUrls = {};
+                for (const screenshot of screenshots) {
+                    // Simulate file upload - in real implementation, upload to Google Drive
+                    screenshotUrls[screenshot.portal] = 'SCREENSHOT_URL_PLACEHOLDER';
+                }
+
+                const response = await apiCall('updateJobPosting', {
+                    requirementId: requirementId,
+                    portals: selectedPortals,
+                    screenshots: screenshotUrls
+                });
+
+                if (response.success) {
+                    showToast('Job posted successfully', 'success');
+                    setTimeout(() => resetForm(), 1500);
+                } else {
+                    throw new Error(response.message || 'Failed to post job');
+                }
+            } catch (error) {
+                console.error('Error posting job:', error);
+                showToast('Failed to post job: ' + error.message, 'error');
+            } finally {
+                submitText.style.display = 'inline';
+                submitLoader.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('jobPostingForm').reset();
+            document.getElementById('jdSection').style.display = 'none';
+            document.getElementById('screenshotUploads').innerHTML = '';
+            selectedRequirement = null;
+        }
+    </script>
+</body>
+</html>
 
