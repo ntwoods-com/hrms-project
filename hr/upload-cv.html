@@ -1,1 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CVs - HRMS HR</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS HR</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="review.html" class="menu-item">
+                    <span class="menu-item-icon">✓</span>
+                    <span>Review Requirements</span>
+                </a>
+                <a href="job-posting.html" class="menu-item">
+                    <span class="menu-item-icon">📢</span>
+                    <span>Job Posting</span>
+                </a>
+                <a href="upload-cv.html" class="menu-item active">
+                    <span class="menu-item-icon">📄</span>
+                    <span>Upload CVs</span>
+                </a>
+                <a href="shortlisting.html" class="menu-item">
+                    <span class="menu-item-icon">✂️</span>
+                    <span>Shortlisting</span>
+                </a>
+                <a href="on-call.html" class="menu-item">
+                    <span class="menu-item-icon">📞</span>
+                    <span>On-Call Conversation</span>
+                </a>
+                <a href="owner-discussion.html" class="menu-item">
+                    <span class="menu-item-icon">💼</span>
+                    <span>Owner Discussion</span>
+                </a>
+                <a href="scheduling.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>Interview Scheduling</span>
+                </a>
+                <a href="walk-ins.html" class="menu-item">
+                    <span class="menu-item-icon">🚶</span>
+                    <span>Walk-ins</span>
+                </a>
+                <a href="tests.html" class="menu-item">
+                    <span class="menu-item-icon">✏️</span>
+                    <span>Test Management</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">H</div>
+                    <div class="user-details">
+                        <h4 id="userName">HR User</h4>
+                        <p id="userRole">Human Resources</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Upload CVs</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">7</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📤 Bulk CV Upload</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="jobId">Select Posted Job <span class="text-danger">*</span></label>
+                            <select id="jobId" class="form-control" required>
+                                <option value="">-- Select Posted Job --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cvFiles">Upload CVs (PDF only) <span class="text-danger">*</span></label>
+                            <input type="file" id="cvFiles" class="form-control" multiple accept=".pdf" onchange="parseFiles()">
+                            <small class="text-muted">File naming format: Name_Mobile_Source.pdf</small>
+                        </div>
+
+                        <div id="progressSection" style="display: none;">
+                            <div class="form-group">
+                                <label>Upload Progress</label>
+                                <div class="progress">
+                                    <div id="progressBar" class="progress-bar" style="width: 0%">0%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="parsedDataSection" style="display: none;">
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h3>📋 Parsed Data (Review before submission)</h3>
+                                    <span id="fileCount" class="badge">0</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>File Name</th>
+                                                    <th>Candidate Name</th>
+                                                    <th>Mobile</th>
+                                                    <th>Source</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="parsedDataBody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions mt-3">
+                                <button class="btn btn-primary" onclick="submitCVs()">
+                                    <span id="submitText">📤 Submit All CVs</span>
+                                    <span id="submitLoader" style="display: none;">
+                                        <span class="spinner-sm"></span> Uploading...
+                                    </span>
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetForm()">🔄 Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        let parsedCVs = [];
+        let selectedJob = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadPostedJobs();
+        });
+
+        async function loadPostedJobs() {
+            try {
+                const response = await apiCall('getRequirements', { status: 'Posted' });
+                
+                if (response.success && response.requirements) {
+                    const select = document.getElementById('jobId');
+                    response.requirements.forEach(req => {
+                        const option = document.createElement('option');
+                        option.value = req.id;
+                        option.textContent = `#${req.id} - ${req.jobRole}`;
+                        option.dataset.role = req.jobRole;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                showToast('Failed to load posted jobs: ' + error.message, 'error');
+            }
+        }
+
+        function parseFiles() {
+            const jobSelect = document.getElementById('jobId');
+            const fileInput = document.getElementById('cvFiles');
+            
+            if (!jobSelect.value) {
+                showToast('Please select a job first', 'warning');
+                fileInput.value = '';
+                return;
+            }
+
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            const selectedOption = jobSelect.options[jobSelect.selectedIndex];
+            const jobRole = selectedOption.dataset.role;
+
+            parsedCVs = [];
+            const tbody = document.getElementById('parsedDataBody');
+            tbody.innerHTML = '';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileName = file.name.replace('.pdf', '');
+                const parts = fileName.split('_');
+                
+                let status = 'Valid';
+                let name = '';
+                let mobile = '';
+                let source = '';
+
+                if (parts.length >= 3) {
+                    name = parts[0];
+                    mobile = parts[1];
+                    source = parts.slice(2).join('_');
+                    
+                    // Validate mobile
+                    if (!/^\d{10}$/.test(mobile)) {
+                        status = 'Invalid Mobile';
+                    }
+                } else {
+                    status = 'Invalid Format';
+                }
+
+                const cvData = {
+                    file: file,
+                    fileName: file.name,
+                    name: name,
+                    mobile: mobile,
+                    source: source,
+                    jobRole: jobRole,
+                    status: status
+                };
+
+                parsedCVs.push(cvData);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${file.name}</td>
+                    <td>${name || '-'}</td>
+                    <td>${mobile || '-'}</td>
+                    <td>${source || '-'}</td>
+                    <td><span class="badge badge-${status === 'Valid' ? 'success' : 'danger'}">${status}</span></td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            document.getElementById('parsedDataSection').style.display = 'block';
+            document.getElementById('fileCount').textContent = files.length;
+        }
+
+        async function submitCVs() {
+            const jobId = document.getElementById('jobId').value;
+            
+            if (!jobId) {
+                showToast('Please select a job', 'warning');
+                return;
+            }
+
+            const validCVs = parsedCVs.filter(cv => cv.status === 'Valid');
+            
+            if (validCVs.length === 0) {
+                showToast('No valid CVs to upload', 'warning');
+                return;
+            }
+
+            const submitText = document.getElementById('submitText');
+            const submitLoader = document.getElementById('submitLoader');
+            const progressSection = document.getElementById('progressSection');
+            const progressBar = document.getElementById('progressBar');
+
+            submitText.style.display = 'none';
+            submitLoader.style.display = 'inline';
+            progressSection.style.display = 'block';
+
+            let uploaded = 0;
+            const total = validCVs.length;
+
+            try {
+                for (const cv of validCVs) {
+                    // In real implementation, upload file to Google Drive first
+                    const cvUrl = 'CV_URL_PLACEHOLDER';
+
+                    const response = await apiCall('uploadCV', {
+                        requirementId: jobId,
+                        name: cv.name,
+                        mobile: cv.mobile,
+                        source: cv.source,
+                        jobRole: cv.jobRole,
+                        cvUrl: cvUrl
+                    });
+
+                    if (!response.success) {
+                        throw new Error(`Failed to upload CV for ${cv.name}: ${response.message}`);
+                    }
+
+                    uploaded++;
+                    const progress = Math.round((uploaded / total) * 100);
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                }
+
+                showToast(`Successfully uploaded ${uploaded} CVs`, 'success');
+                setTimeout(() => resetForm(), 2000);
+            } catch (error) {
+                console.error('Error uploading CVs:', error);
+                showToast('Failed to upload CVs: ' + error.message, 'error');
+            } finally {
+                submitText.style.display = 'inline';
+                submitLoader.style.display = 'none';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('jobId').value = '';
+            document.getElementById('cvFiles').value = '';
+            document.getElementById('parsedDataSection').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressBar').textContent = '0%';
+            parsedCVs = [];
+        }
+    </script>
+</body>
+</html>
 
