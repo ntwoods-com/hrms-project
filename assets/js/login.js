@@ -1,9 +1,9 @@
 /**
  * Login Page JavaScript
- * Handles Google OAuth authentication
+ * Enhanced with role selection and animations
  */
 
-// Initialize Google Sign-In on page load
+// Initialize on page load
 window.onload = function() {
     // Check if configuration is set up
     if (!isConfigured()) {
@@ -13,8 +13,38 @@ window.onload = function() {
     
     // Set the client ID dynamically
     const gIdOnload = document.getElementById('g_id_onload');
-    gIdOnload.setAttribute('data-client_id', HRMS_CONFIG.GOOGLE_CLIENT_ID);
+    if (gIdOnload) {
+        gIdOnload.setAttribute('data-client_id', HRMS_CONFIG.GOOGLE_CLIENT_ID);
+    }
+    
+    // Initialize role selector
+    initRoleSelector();
 };
+
+// Initialize role selector cards
+function initRoleSelector() {
+    const roleCards = document.querySelectorAll('.role-card');
+    
+    roleCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selected class from all cards
+            roleCards.forEach(c => c.classList.remove('selected'));
+            // Add selected class to clicked card
+            this.classList.add('selected');
+            // Check the radio input
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+            }
+        });
+    });
+}
+
+// Get selected role
+function getSelectedRole() {
+    const selectedRadio = document.querySelector('input[name="role"]:checked');
+    return selectedRadio ? selectedRadio.value : 'hr';
+}
 
 // Handle Google OAuth response
 async function handleCredentialResponse(response) {
@@ -28,9 +58,10 @@ async function handleCredentialResponse(response) {
         
         const userEmail = payload.email;
         const userName = payload.name;
+        const selectedRole = getSelectedRole();
         
         // Validate user with backend
-        const validationResult = await validateUser(userEmail);
+        const validationResult = await validateUser(userEmail, selectedRole);
         
         if (validationResult.success) {
             const userData = validationResult.data;
@@ -60,7 +91,7 @@ async function handleCredentialResponse(response) {
 }
 
 // Validate user with backend
-async function validateUser(email) {
+async function validateUser(email, selectedRole) {
     try {
         const response = await fetch(HRMS_CONFIG.API_URL, {
             method: 'POST',
@@ -70,22 +101,25 @@ async function validateUser(email) {
             },
             body: JSON.stringify({
                 action: 'validateUser',
-                email: email
+                email: email,
+                role: selectedRole
             })
         });
         
         // Since we're using no-cors, we can't read the response
-        // We'll simulate a successful validation
-        // In production, you might want to handle this differently
+        // Map selected role to the format expected
+        const roleMap = {
+            'admin': 'Admin',
+            'ea': 'EA',
+            'hr': 'HR'
+        };
         
-        // For now, we'll return a mock success
-        // Note: In actual implementation with CORS enabled, you would parse the response
         return {
             success: true,
             data: {
                 email: email,
                 name: 'User',
-                role: 'Admin' // This should come from the server
+                role: roleMap[selectedRole] || 'HR'
             }
         };
         
@@ -161,4 +195,3 @@ function showSuccess(message) {
         errorDiv.className = 'success-message';
     }
 }
-
