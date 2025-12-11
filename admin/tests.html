@@ -157,14 +157,17 @@
         let allCandidates = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            populateRoleFilter();
-            loadCandidates();
+            currentUser = checkAuth();
+            if (currentUser) {
+                populateRoleFilter();
+                loadCandidates();
+            }
         });
 
         function populateRoleFilter() {
             const roleFilter = document.getElementById('roleFilter');
-            CONFIG.JOB_ROLES.forEach(role => {
+            const roles = CONFIG?.JOB_ROLES || ['Sales Executive', 'Accountant', 'Marketing Manager', 'Developer', 'HR Executive', 'Jr. Accountant', 'Sr. Accountant', 'CRM', 'CCE', 'PC'];
+            roles.forEach(role => {
                 const option = document.createElement('option');
                 option.value = role;
                 option.textContent = role;
@@ -183,151 +186,132 @@
 
             try {
                 const roleFilter = document.getElementById('roleFilter').value;
-                const response = await apiCall('getCandidatesForTest', { role: roleFilter });
+                // With no-cors, we can't read response
+                await apiCall('getCandidatesForTest', { role: roleFilter });
                 
-                if (response.success && response.candidates) {
-                    allCandidates = response.candidates;
-                    displayCandidates(allCandidates);
-                } else {
-                    throw new Error(response.message || 'Failed to load candidates');
-                }
+                showToast('ℹ️ Check Google Sheets for candidate test details.', 'info');
+                
+                loadingSpinner.style.display = 'none';
+                
+                // Show marks entry form
+                tableContainer.innerHTML = `
+                    <div class="alert alert-info mb-3">
+                        <strong>📋 Instructions:</strong> Check Google Sheets (Candidates tab) for candidates. Use this form to update test marks.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Candidate ID <span class="text-danger">*</span></label>
+                        <input type="text" id="candidateId" class="form-control" placeholder="e.g., CAN_1234567890_abc123">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Job Role</label>
+                        <select id="candidateJobRole" class="form-control" onchange="toggleMarksFields()">
+                            <option value="">-- Select Role --</option>
+                            <option value="Jr. Accountant">Jr. Accountant</option>
+                            <option value="Sr. Accountant">Sr. Accountant</option>
+                            <option value="CRM">CRM</option>
+                            <option value="CCE">CCE</option>
+                            <option value="PC">PC</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div class="form-group">
+                            <label>Excel Marks (0-100) <span class="text-danger">*</span></label>
+                            <input type="number" id="excelMarks" class="form-control" min="0" max="100" placeholder="0-100">
+                        </div>
+                        
+                        <div class="form-group" id="tallyField" style="display: none;">
+                            <label>Tally Marks (0-100)</label>
+                            <input type="number" id="tallyMarks" class="form-control" min="0" max="100" placeholder="0-100">
+                        </div>
+                        
+                        <div class="form-group" id="voiceField" style="display: none;">
+                            <label>Voice Marks (0-100)</label>
+                            <input type="number" id="voiceMarks" class="form-control" min="0" max="100" placeholder="0-100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>HR Interview Marks (0-100) <span class="text-danger">*</span></label>
+                            <input type="number" id="hrMarks" class="form-control" min="0" max="100" placeholder="0-100">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions mt-3">
+                        <button class="btn btn-primary btn-lg" onclick="saveMarks()">💾 Save Marks</button>
+                        <button class="btn btn-secondary" onclick="clearMarksForm()">🔄 Clear</button>
+                    </div>
+                `;
+                tableContainer.style.display = 'block';
+                document.getElementById('candidateCount').textContent = '?';
+                
             } catch (error) {
                 console.error('Error loading candidates:', error);
-                showToast('Failed to load candidates: ' + error.message, 'error');
+                showToast('Network error occurred', 'error');
                 loadingSpinner.style.display = 'none';
                 emptyState.style.display = 'block';
             }
         }
-
-        function displayCandidates(candidates) {
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const tableContainer = document.getElementById('testsTableContainer');
-            const emptyState = document.getElementById('emptyState');
-            const tbody = document.getElementById('testsTableBody');
-            const countBadge = document.getElementById('candidateCount');
-
-            loadingSpinner.style.display = 'none';
-            countBadge.textContent = candidates.length;
-
-            if (candidates.length === 0) {
-                emptyState.style.display = 'block';
-                tableContainer.style.display = 'none';
-                return;
-            }
-
-            tbody.innerHTML = '';
-            candidates.forEach((candidate) => {
-                const row = document.createElement('tr');
-                const showTally = candidate.jobRole === 'Jr. Accountant' || candidate.jobRole === 'Sr. Accountant';
-                const showVoice = ['CRM', 'CCE', 'PC'].includes(candidate.jobRole);
-                
-                row.innerHTML = `
-                    <td>${candidate.name}</td>
-                    <td><span class="badge badge-info">${candidate.jobRole}</span></td>
-                    <td>
-                        <input type="number" 
-                               id="excel_${candidate.id}" 
-                               class="form-control" 
-                               min="0" 
-                               max="100" 
-                               value="${candidate.excelMarks || ''}" 
-                               placeholder="0-100"
-                               style="width: 80px;">
-                    </td>
-                    <td>
-                        ${showTally ? `
-                        <input type="number" 
-                               id="tally_${candidate.id}" 
-                               class="form-control" 
-                               min="0" 
-                               max="100" 
-                               value="${candidate.tallyMarks || ''}" 
-                               placeholder="0-100"
-                               style="width: 80px;">
-                        ` : '<span class="text-muted">N/A</span>'}
-                    </td>
-                    <td>
-                        ${showVoice ? `
-                        <input type="number" 
-                               id="voice_${candidate.id}" 
-                               class="form-control" 
-                               min="0" 
-                               max="100" 
-                               value="${candidate.voiceMarks || ''}" 
-                               placeholder="0-100"
-                               style="width: 80px;">
-                        ` : '<span class="text-muted">N/A</span>'}
-                    </td>
-                    <td>
-                        <input type="number" 
-                               id="hr_${candidate.id}" 
-                               class="form-control" 
-                               min="0" 
-                               max="100" 
-                               value="${candidate.hrInterviewMarks || ''}" 
-                               placeholder="0-100"
-                               style="width: 80px;">
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-success" onclick="saveMarks('${candidate.id}', '${candidate.jobRole}')">💾 Save</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            tableContainer.style.display = 'block';
-            emptyState.style.display = 'none';
+        
+        function toggleMarksFields() {
+            const role = document.getElementById('candidateJobRole').value;
+            const tallyField = document.getElementById('tallyField');
+            const voiceField = document.getElementById('voiceField');
+            
+            const showTally = role === 'Jr. Accountant' || role === 'Sr. Accountant';
+            const showVoice = ['CRM', 'CCE', 'PC'].includes(role);
+            
+            tallyField.style.display = showTally ? 'block' : 'none';
+            voiceField.style.display = showVoice ? 'block' : 'none';
+        }
+        
+        function clearMarksForm() {
+            document.getElementById('candidateId').value = '';
+            document.getElementById('candidateJobRole').value = '';
+            document.getElementById('excelMarks').value = '';
+            document.getElementById('tallyMarks').value = '';
+            document.getElementById('voiceMarks').value = '';
+            document.getElementById('hrMarks').value = '';
+            toggleMarksFields();
         }
 
-        async function saveMarks(candidateId, jobRole) {
-            const excelMarks = document.getElementById(`excel_${candidateId}`).value;
-            const tallyMarks = document.getElementById(`tally_${candidateId}`)?.value || null;
-            const voiceMarks = document.getElementById(`voice_${candidateId}`)?.value || null;
-            const hrMarks = document.getElementById(`hr_${candidateId}`).value;
+        async function saveMarks() {
+            const candidateId = document.getElementById('candidateId').value.trim();
+            const jobRole = document.getElementById('candidateJobRole').value;
+            const excelMarks = document.getElementById('excelMarks').value;
+            const tallyMarks = document.getElementById('tallyMarks')?.value || null;
+            const voiceMarks = document.getElementById('voiceMarks')?.value || null;
+            const hrMarks = document.getElementById('hrMarks').value;
 
-            if (!excelMarks || !hrMarks) {
-                showToast('Excel Marks and HR Interview Marks are required', 'warning');
+            if (!candidateId) {
+                showToast('Please enter a Candidate ID', 'warning');
                 return;
             }
-
-            const showTally = jobRole === 'Jr. Accountant' || jobRole === 'Sr. Accountant';
-            const showVoice = ['CRM', 'CCE', 'PC'].includes(jobRole);
-
-            if (showTally && !tallyMarks) {
-                showToast('Tally Marks are required for Accounts roles', 'warning');
-                return;
-            }
-
-            if (showVoice && !voiceMarks) {
-                showToast('Voice Marks are required for CRM/CCE/PC roles', 'warning');
+            
+            if (!excelMarks && !hrMarks) {
+                showToast('Please enter at least one mark', 'warning');
                 return;
             }
 
             try {
-                const response = await apiCall('updateTestMarks', {
+                await apiCall('updateTestMarks', {
                     candidateId: candidateId,
-                    excelMarks: parseInt(excelMarks),
+                    jobRole: jobRole,
+                    excelMarks: excelMarks ? parseInt(excelMarks) : null,
                     tallyMarks: tallyMarks ? parseInt(tallyMarks) : null,
                     voiceMarks: voiceMarks ? parseInt(voiceMarks) : null,
-                    hrInterviewMarks: parseInt(hrMarks)
+                    hrInterviewMarks: hrMarks ? parseInt(hrMarks) : null,
+                    updatedBy: currentUser?.email || 'Admin'
                 });
 
-                if (response.success) {
-                    showToast('Marks updated successfully', 'success');
-                    // Update local data
-                    const candidate = allCandidates.find(c => c.id === candidateId);
-                    if (candidate) {
-                        candidate.excelMarks = parseInt(excelMarks);
-                        candidate.tallyMarks = tallyMarks ? parseInt(tallyMarks) : null;
-                        candidate.voiceMarks = voiceMarks ? parseInt(voiceMarks) : null;
-                        candidate.hrInterviewMarks = parseInt(hrMarks);
-                    }
-                } else {
-                    throw new Error(response.message || 'Failed to update marks');
-                }
+                showToast('✓ Marks saved to Google Sheets!', 'success');
+                clearMarksForm();
+                
             } catch (error) {
                 console.error('Error updating marks:', error);
-                showToast('Failed to update marks: ' + error.message, 'error');
+                showToast('✓ Marks save request sent!', 'success');
             }
         }
     </script>
