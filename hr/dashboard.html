@@ -1,1 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Dashboard - HRMS</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS HR</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item active">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="review.html" class="menu-item">
+                    <span class="menu-item-icon">✓</span>
+                    <span>Review Requirements</span>
+                </a>
+                <a href="job-posting.html" class="menu-item">
+                    <span class="menu-item-icon">📢</span>
+                    <span>Job Posting</span>
+                </a>
+                <a href="upload-cv.html" class="menu-item">
+                    <span class="menu-item-icon">📄</span>
+                    <span>Upload CVs</span>
+                </a>
+                <a href="shortlisting.html" class="menu-item">
+                    <span class="menu-item-icon">✂️</span>
+                    <span>Shortlisting</span>
+                </a>
+                <a href="on-call.html" class="menu-item">
+                    <span class="menu-item-icon">📞</span>
+                    <span>On-Call Conversation</span>
+                </a>
+                <a href="owner-discussion.html" class="menu-item">
+                    <span class="menu-item-icon">💼</span>
+                    <span>Owner Discussion</span>
+                </a>
+                <a href="scheduling.html" class="menu-item">
+                    <span class="menu-item-icon">📅</span>
+                    <span>Interview Scheduling</span>
+                </a>
+                <a href="walk-ins.html" class="menu-item">
+                    <span class="menu-item-icon">🚶</span>
+                    <span>Walk-ins</span>
+                </a>
+                <a href="tests.html" class="menu-item">
+                    <span class="menu-item-icon">✏️</span>
+                    <span>Tests & Marks</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">H</div>
+                    <div class="user-details">
+                        <h4 id="userName">HR User</h4>
+                        <p id="userRole">HR</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Dashboard</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">8</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Statistics -->
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon warning">
+                            ⏳
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pendingReview">0</h3>
+                            <p>Pending Review</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon primary">
+                            📄
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalCVs">0</h3>
+                            <p>Total CVs</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon success">
+                            ✓
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="shortlisted">0</h3>
+                            <p>Shortlisted</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon danger">
+                            📅
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="todayInterviews">0</h3>
+                            <p>Today's Interviews</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Today's Interviews -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Today's Interviews</h2>
+                        <div class="section-actions">
+                            <a href="walk-ins.html" class="btn btn-sm btn-primary">
+                                View All →
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Candidate Name</th>
+                                    <th>Job Role</th>
+                                    <th>Mobile</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="todayInterviewsTable">
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">📅</div>
+                                            <h3>No Interviews Today</h3>
+                                            <p>Schedule interviews from the scheduling module</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Pending Tasks -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Pending Tasks</h2>
+                    </div>
+                    
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="card">
+                            <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>Requirements Pending Review</h4>
+                                    <p class="text-secondary" style="margin: 0;">Review new requirements raised by EA</p>
+                                </div>
+                                <div>
+                                    <span class="badge badge-warning" style="font-size: 1.5rem;">2</span>
+                                    <a href="review.html" class="btn btn-sm btn-primary" style="margin-left: 1rem;">Review</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>Candidates for Call</h4>
+                                    <p class="text-secondary" style="margin: 0;">Conduct telephonic screening</p>
+                                </div>
+                                <div>
+                                    <span class="badge badge-primary" style="font-size: 1.5rem;">5</span>
+                                    <a href="on-call.html" class="btn btn-sm btn-primary" style="margin-left: 1rem;">Start Calling</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>Owner Discussion Pending</h4>
+                                    <p class="text-secondary" style="margin: 0;">Discuss recommended candidates with owners</p>
+                                </div>
+                                <div>
+                                    <span class="badge badge-success" style="font-size: 1.5rem;">3</span>
+                                    <a href="owner-discussion.html" class="btn btn-sm btn-primary" style="margin-left: 1rem;">Discuss</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        // Check HR authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = checkAuth();
+            if (!user) return;
+            
+            if (user.role !== 'HR') {
+                alert('Access denied. HR privileges required.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            // Update user info
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+            
+            // Load dashboard data
+            loadDashboard();
+            
+            // Initialize mobile menu
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+            
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+        });
+        
+        async function loadDashboard() {
+            // Simulate loading data
+            document.getElementById('pendingReview').textContent = '2';
+            document.getElementById('totalCVs').textContent = '45';
+            document.getElementById('shortlisted').textContent = '18';
+            document.getElementById('todayInterviews').textContent = '3';
+        }
+    </script>
+</body>
+</html>
 
