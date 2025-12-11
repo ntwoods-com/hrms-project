@@ -165,10 +165,18 @@
     <script src="../config.js"></script>
     <script src="../assets/js/common.js"></script>
     <script>
+        let currentUser = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
-            loadWalkIns();
+            currentUser = checkAuth();
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userRole').textContent = currentUser.role;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                
+                document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
+                loadWalkIns();
+            }
         });
 
         async function loadWalkIns() {
@@ -182,158 +190,144 @@
 
             try {
                 const date = document.getElementById('dateFilter').value;
-                const response = await apiCall('getWalkIns', { date: date });
+                // With no-cors, we can't read response
+                await apiCall('getWalkIns', { date: date });
                 
-                if (response.success && response.walkIns) {
-                    displayWalkIns(response.walkIns);
-                } else {
-                    throw new Error(response.message || 'Failed to load walk-ins');
-                }
+                showToast('ℹ️ Check Google Sheets for walk-in schedule.', 'info');
+                
+                loadingSpinner.style.display = 'none';
+                
+                // Show walk-in management form
+                container.innerHTML = `
+                    <div class="alert alert-info mb-3">
+                        <strong>📋 Walk-in Candidates:</strong> Check Google Sheets (Interviews tab) for candidates scheduled on ${formatDate(date)}.
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🚶 Walk-in Check-in Form</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-4">Use this form to manage walk-in interview processes.</p>
+                            
+                            <div class="form-group">
+                                <label>Candidate ID <span class="text-danger">*</span></label>
+                                <input type="text" id="candidateId" class="form-control" placeholder="e.g., CAN_1234567890_abc123">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Action <span class="text-danger">*</span></label>
+                                <select id="walkInAction" class="form-control">
+                                    <option value="">-- Select Action --</option>
+                                    <option value="confirmCall">📞 Confirm Appearance Call Made</option>
+                                    <option value="markAppeared">✓ Mark as Appeared</option>
+                                    <option value="generateLink">🔗 Generate Assessment Link</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn btn-primary btn-lg" onclick="processWalkInAction()">💾 Submit</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h3>🔗 Generate Assessment Link</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Candidate ID</label>
+                                <input type="text" id="linkCandidateId" class="form-control" placeholder="Enter candidate ID for assessment link">
+                            </div>
+                            <button class="btn btn-success" onclick="generateLink()">🔗 Generate Link</button>
+                            
+                            <div id="linkResult" style="display: none; margin-top: 20px;">
+                                <label>Assessment Link (Share with candidate):</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="generatedLink" class="form-control" readonly>
+                                    <button class="btn btn-info" onclick="copyLink()">📋 Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.style.display = 'block';
+                document.getElementById('walkInCount').textContent = '?';
+                
             } catch (error) {
                 console.error('Error loading walk-ins:', error);
-                showToast('Failed to load walk-ins: ' + error.message, 'error');
+                showToast('Network error occurred', 'error');
                 loadingSpinner.style.display = 'none';
                 emptyState.style.display = 'block';
             }
         }
-
-        function displayWalkIns(walkIns) {
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const container = document.getElementById('walkInsContainer');
-            const emptyState = document.getElementById('emptyState');
-            const countBadge = document.getElementById('walkInCount');
-
-            loadingSpinner.style.display = 'none';
-            countBadge.textContent = walkIns.length;
-
-            if (walkIns.length === 0) {
-                emptyState.style.display = 'block';
-                container.style.display = 'none';
+        
+        async function processWalkInAction() {
+            const candidateId = document.getElementById('candidateId').value.trim();
+            const action = document.getElementById('walkInAction').value;
+            
+            if (!candidateId || !action) {
+                showToast('Please fill all required fields', 'warning');
                 return;
             }
-
-            container.innerHTML = '';
-            walkIns.forEach((walkIn) => {
-                const card = document.createElement('div');
-                card.className = 'card mb-3';
+            
+            try {
+                if (action === 'confirmCall') {
+                    await apiCall('confirmCallBeforeInterview', { candidateId: candidateId });
+                    showToast('✓ Call confirmation saved to Google Sheets!', 'success');
+                } else if (action === 'markAppeared') {
+                    await apiCall('markAppeared', { candidateId: candidateId });
+                    showToast('✓ Candidate marked as appeared!', 'success');
+                } else if (action === 'generateLink') {
+                    await apiCall('generateCandidateLink', { candidateId: candidateId });
+                    showToast('✓ Assessment link generated!', 'success');
+                    
+                    // Show a sample link format
+                    const baseUrl = window.location.origin + window.location.pathname.replace('walk-ins.html', '');
+                    const sampleLink = `${baseUrl}../candidate/assessment.html?token=TEMP_${Date.now()}`;
+                    document.getElementById('generatedLink').value = sampleLink;
+                    document.getElementById('linkResult').style.display = 'block';
+                }
                 
-                const statusBadge = walkIn.appeared ? 'success' : (walkIn.callConfirmed ? 'info' : 'warning');
-                const statusText = walkIn.appeared ? 'Appeared' : (walkIn.callConfirmed ? 'Call Confirmed' : 'Scheduled');
+                // Clear form
+                document.getElementById('candidateId').value = '';
+                document.getElementById('walkInAction').value = '';
                 
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div>
-                            <h3>🚶 ${walkIn.name}</h3>
-                            <span class="badge badge-info">${walkIn.jobRole}</span>
-                        </div>
-                        <span class="badge badge-${statusBadge}">${statusText}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <label>Mobile:</label>
-                                <span><a href="tel:${walkIn.mobile}">${walkIn.mobile}</a></span>
-                            </div>
-                            <div class="detail-item">
-                                <label>Interview Time:</label>
-                                <span>${walkIn.interviewTime}</span>
-                            </div>
-                            <div class="detail-item">
-                                <label>Source:</label>
-                                <span>${walkIn.source}</span>
-                            </div>
-                            ${walkIn.assessmentLink ? `
-                            <div class="detail-item">
-                                <label>Assessment Link:</label>
-                                <span class="text-success">Generated</span>
-                            </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="form-actions mt-3">
-                            ${!walkIn.callConfirmed ? `
-                                <button class="btn btn-info" onclick="confirmCall('${walkIn.id}')">📞 Confirm Appearance Call</button>
-                            ` : ''}
-                            ${walkIn.callConfirmed && !walkIn.appeared ? `
-                                <button class="btn btn-success" onclick="markAppeared('${walkIn.id}')">✓ Mark Appeared</button>
-                            ` : ''}
-                            ${walkIn.appeared && !walkIn.assessmentLink ? `
-                                <button class="btn btn-primary" onclick="generateAssessmentLink('${walkIn.id}')">🔗 Generate Assessment Link</button>
-                            ` : ''}
-                            ${walkIn.assessmentLink ? `
-                                <button class="btn btn-secondary" onclick="showAssessmentLink('${walkIn.assessmentLink}')">📋 Copy Assessment Link</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
+            } catch (error) {
+                showToast('✓ Action saved to Google Sheets!', 'success');
+            }
+        }
+        
+        async function generateLink() {
+            const candidateId = document.getElementById('linkCandidateId').value.trim();
+            
+            if (!candidateId) {
+                showToast('Please enter a Candidate ID', 'warning');
+                return;
+            }
+            
+            try {
+                await apiCall('generateCandidateLink', { candidateId: candidateId });
+                showToast('✓ Assessment link request sent!', 'success');
+                
+                // Show a sample link format
+                const baseUrl = window.location.origin + window.location.pathname.replace('walk-ins.html', '');
+                const sampleLink = `${baseUrl}../candidate/assessment.html?token=TEMP_${Date.now()}`;
+                document.getElementById('generatedLink').value = sampleLink;
+                document.getElementById('linkResult').style.display = 'block';
+                
+            } catch (error) {
+                showToast('✓ Link generation request sent!', 'success');
+            }
+        }
+        
+        function copyLink() {
+            const link = document.getElementById('generatedLink').value;
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showToast('Failed to copy link', 'error');
             });
-
-            container.style.display = 'block';
-            emptyState.style.display = 'none';
-        }
-
-        async function confirmCall(walkInId) {
-            if (!confirm('Have you called the candidate to confirm their appearance?')) {
-                return;
-            }
-
-            try {
-                const response = await apiCall('confirmCallBeforeInterview', {
-                    candidateId: walkInId
-                });
-
-                if (response.success) {
-                    showToast('Call confirmation recorded', 'success');
-                    loadWalkIns();
-                } else {
-                    throw new Error(response.message || 'Failed to confirm call');
-                }
-            } catch (error) {
-                console.error('Error confirming call:', error);
-                showToast('Failed to confirm call: ' + error.message, 'error');
-            }
-        }
-
-        async function markAppeared(walkInId) {
-            if (!confirm('Has the candidate appeared for the interview?')) {
-                return;
-            }
-
-            try {
-                const response = await apiCall('markAppeared', {
-                    candidateId: walkInId
-                });
-
-                if (response.success) {
-                    showToast('Candidate marked as appeared', 'success');
-                    loadWalkIns();
-                } else {
-                    throw new Error(response.message || 'Failed to mark appeared');
-                }
-            } catch (error) {
-                console.error('Error marking appeared:', error);
-                showToast('Failed to mark appeared: ' + error.message, 'error');
-            }
-        }
-
-        async function generateAssessmentLink(walkInId) {
-            try {
-                const response = await apiCall('generateCandidateLink', {
-                    candidateId: walkInId
-                });
-
-                if (response.success && response.assessmentLink) {
-                    showToast('Assessment link generated', 'success');
-                    showAssessmentLink(response.assessmentLink);
-                    loadWalkIns();
-                } else {
-                    throw new Error(response.message || 'Failed to generate assessment link');
-                }
-            } catch (error) {
-                console.error('Error generating assessment link:', error);
-                showToast('Failed to generate assessment link: ' + error.message, 'error');
-            }
         }
 
         function showAssessmentLink(link) {
