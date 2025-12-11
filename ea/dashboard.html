@@ -1,1 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EA Dashboard - HRMS</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS EA</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item active">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="raise-requirement.html" class="menu-item">
+                    <span class="menu-item-icon">➕</span>
+                    <span>Raise Requirement</span>
+                </a>
+                <a href="my-requirements.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>My Requirements</span>
+                </a>
+                <a href="incomplete.html" class="menu-item">
+                    <span class="menu-item-icon">⚠️</span>
+                    <span>Incomplete Requirements</span>
+                </a>
+                <a href="candidates.html" class="menu-item">
+                    <span class="menu-item-icon">👤</span>
+                    <span>All Candidates</span>
+                </a>
+                <a href="tests.html" class="menu-item">
+                    <span class="menu-item-icon">✏️</span>
+                    <span>Update Test Marks</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">E</div>
+                    <div class="user-details">
+                        <h4 id="userName">EA User</h4>
+                        <p id="userRole">EA</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Dashboard</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">3</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Quick Actions -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Quick Actions</h2>
+                    </div>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="raise-requirement.html" class="btn btn-primary btn-lg">
+                            ➕ Raise New Requirement
+                        </a>
+                        <a href="incomplete.html" class="btn btn-warning btn-lg">
+                            ⚠️ View Incomplete Requirements
+                        </a>
+                        <a href="candidates.html" class="btn btn-secondary btn-lg">
+                            👤 View All Candidates
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Statistics -->
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon primary">
+                            📋
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalRequirements">0</h3>
+                            <p>Total Requirements Raised</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon warning">
+                            ⚠️
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="incompleteRequirements">0</h3>
+                            <p>Incomplete Requirements</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon success">
+                            ✓
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="validRequirements">0</h3>
+                            <p>Valid Requirements</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon danger">
+                            👤
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalCandidates">0</h3>
+                            <p>Total Candidates</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Requirements -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Recent Requirements</h2>
+                        <div class="section-actions">
+                            <a href="my-requirements.html" class="btn btn-sm btn-outline">
+                                View All →
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Req ID</th>
+                                    <th>Job Title</th>
+                                    <th>Job Role</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requirementsTable">
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">📋</div>
+                                            <h3>No Requirements Yet</h3>
+                                            <p>Start by raising a new requirement</p>
+                                            <a href="raise-requirement.html" class="btn btn-primary">
+                                                ➕ Raise Requirement
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        // Check EA authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = checkAuth();
+            if (!user) return;
+            
+            if (user.role !== 'EA') {
+                alert('Access denied. EA privileges required.');
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            // Update user info
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+            
+            // Load dashboard data
+            loadDashboard();
+            
+            // Initialize mobile menu
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+            });
+            
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            });
+        });
+        
+        async function loadDashboard() {
+            // Simulate loading data
+            document.getElementById('totalRequirements').textContent = '5';
+            document.getElementById('incompleteRequirements').textContent = '2';
+            document.getElementById('validRequirements').textContent = '3';
+            document.getElementById('totalCandidates').textContent = '15';
+        }
+    </script>
+</body>
+</html>
 
