@@ -1,1 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - HRMS</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/login.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo-section">
+                <h1>🏢 HRMS</h1>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <div class="login-content">
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Sign in with your Google account to continue</p>
+                
+                <div id="g_id_onload"
+                     data-client_id=""
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="sign_in_with"
+                     data-shape="rectangular"
+                     data-logo_alignment="left">
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Authenticating...</p>
+                </div>
+                
+                <div id="error-message" class="error-message" style="display: none;"></div>
+            </div>
+            
+            <div class="login-footer">
+                <p>&copy; 2025 N.T Woods Pvt. Ltd. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/login.js"></script>
+</body>
+</html>
 
