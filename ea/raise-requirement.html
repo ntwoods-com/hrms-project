@@ -1,1 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raise Requirement - HRMS EA</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 HRMS EA</h2>
+                <p>N.T Woods Pvt. Ltd.</p>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="menu-item">
+                    <span class="menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="raise-requirement.html" class="menu-item active">
+                    <span class="menu-item-icon">➕</span>
+                    <span>Raise Requirement</span>
+                </a>
+                <a href="incomplete.html" class="menu-item">
+                    <span class="menu-item-icon">⚠️</span>
+                    <span>Incomplete</span>
+                </a>
+                <a href="view-requirements.html" class="menu-item">
+                    <span class="menu-item-icon">📋</span>
+                    <span>View Requirements</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">E</div>
+                    <div class="user-details">
+                        <h4 id="userName">EA User</h4>
+                        <p id="userRole">Executive Assistant</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary w-100" onclick="logout()">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div class="page-title">
+                        <h1>Raise New Requirement</h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-icon">
+                        🔔
+                        <span class="notification-badge">3</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>➕ New Job Requirement</h3>
+                        <button class="btn btn-info" onclick="autoFillFromTemplate()">📝 Auto-fill from Template</button>
+                    </div>
+                    <div class="card-body">
+                        <form id="requirementForm" onsubmit="submitRequirement(event)">
+                            <input type="hidden" id="requirementId" value="">
+                            
+                            <div class="form-group">
+                                <label for="jobRole">Job Role <span class="text-danger">*</span></label>
+                                <select id="jobRole" class="form-control" required>
+                                    <option value="">Select Job Role</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="responsibilities">Responsibilities <span class="text-danger">*</span></label>
+                                <textarea id="responsibilities" class="form-control" rows="4" required placeholder="Enter job responsibilities..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mustHave">Must Have Skills/Qualifications <span class="text-danger">*</span></label>
+                                <textarea id="mustHave" class="form-control" rows="4" required placeholder="Enter must-have qualifications..."></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="shift">Shift <span class="text-danger">*</span></label>
+                                        <input type="text" id="shift" class="form-control" required placeholder="e.g., 9:00 AM - 6:00 PM">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payScale">Pay Scale <span class="text-danger">*</span></label>
+                                        <input type="text" id="payScale" class="form-control" required placeholder="e.g., 15,000 - 20,000">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="perks">Perks & Benefits <span class="text-danger">*</span></label>
+                                <textarea id="perks" class="form-control" rows="3" required placeholder="Enter perks and benefits..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="note">Additional Notes</label>
+                                <textarea id="note" class="form-control" rows="3" placeholder="Any additional information..."></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <span id="submitText">📤 Submit Requirement</span>
+                                    <span id="submitLoader" style="display: none;">
+                                        <span class="spinner-sm"></span> Submitting...
+                                    </span>
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Reset Form</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="../assets/js/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            populateJobRoles();
+            checkForEditMode();
+        });
+
+        function populateJobRoles() {
+            const jobRoleSelect = document.getElementById('jobRole');
+            CONFIG.JOB_ROLES.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                jobRoleSelect.appendChild(option);
+            });
+        }
+
+        function checkForEditMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reqId = urlParams.get('id');
+            
+            if (reqId) {
+                loadRequirementForEdit(reqId);
+            }
+        }
+
+        async function loadRequirementForEdit(reqId) {
+            try {
+                const response = await apiCall('getRequirementById', { id: reqId });
+                
+                if (response.success && response.requirement) {
+                    const req = response.requirement;
+                    document.getElementById('requirementId').value = req.id;
+                    document.getElementById('jobRole').value = req.jobRole;
+                    document.getElementById('responsibilities').value = req.responsibilities;
+                    document.getElementById('mustHave').value = req.mustHave;
+                    document.getElementById('shift').value = req.shift;
+                    document.getElementById('payScale').value = req.payScale;
+                    document.getElementById('perks').value = req.perks;
+                    document.getElementById('note').value = req.note || '';
+                    
+                    document.querySelector('.card-header h3').textContent = '✏️ Edit Requirement';
+                    document.getElementById('submitText').textContent = '💾 Update Requirement';
+                } else {
+                    throw new Error(response.message || 'Failed to load requirement');
+                }
+            } catch (error) {
+                console.error('Error loading requirement:', error);
+                showToast('Failed to load requirement: ' + error.message, 'error');
+            }
+        }
+
+        async function autoFillFromTemplate() {
+            const jobRole = document.getElementById('jobRole').value;
+            
+            if (!jobRole) {
+                showToast('Please select a job role first', 'warning');
+                return;
+            }
+
+            try {
+                const response = await apiCall('getTemplateByRole', { role: jobRole });
+                
+                if (response.success && response.template) {
+                    const template = response.template;
+                    document.getElementById('responsibilities').value = template.responsibilities || '';
+                    document.getElementById('mustHave').value = template.mustHave || '';
+                    document.getElementById('shift').value = template.shift || '';
+                    document.getElementById('payScale').value = template.payScale || '';
+                    document.getElementById('perks').value = template.perks || '';
+                    
+                    showToast('Template loaded successfully', 'success');
+                } else {
+                    showToast('No template found for this role', 'warning');
+                }
+            } catch (error) {
+                console.error('Error loading template:', error);
+                showToast('Failed to load template: ' + error.message, 'error');
+            }
+        }
+
+        async function submitRequirement(event) {
+            event.preventDefault();
+
+            const submitText = document.getElementById('submitText');
+            const submitLoader = document.getElementById('submitLoader');
+            const submitButton = event.target.querySelector('button[type="submit"]');
+
+            submitText.style.display = 'none';
+            submitLoader.style.display = 'inline';
+            submitButton.disabled = true;
+
+            try {
+                const requirementId = document.getElementById('requirementId').value;
+                const data = {
+                    id: requirementId || undefined,
+                    jobRole: document.getElementById('jobRole').value,
+                    responsibilities: document.getElementById('responsibilities').value,
+                    mustHave: document.getElementById('mustHave').value,
+                    shift: document.getElementById('shift').value,
+                    payScale: document.getElementById('payScale').value,
+                    perks: document.getElementById('perks').value,
+                    note: document.getElementById('note').value
+                };
+
+                const action = requirementId ? 'updateRequirement' : 'raiseRequirement';
+                const response = await apiCall(action, data);
+
+                if (response.success) {
+                    showToast(requirementId ? 'Requirement updated successfully' : 'Requirement raised successfully', 'success');
+                    
+                    setTimeout(() => {
+                        if (requirementId) {
+                            window.location.href = 'incomplete.html';
+                        } else {
+                            resetForm();
+                        }
+                    }, 1500);
+                } else {
+                    throw new Error(response.message || 'Failed to submit requirement');
+                }
+            } catch (error) {
+                console.error('Error submitting requirement:', error);
+                showToast('Failed to submit requirement: ' + error.message, 'error');
+            } finally {
+                submitText.style.display = 'inline';
+                submitLoader.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('requirementForm').reset();
+            document.getElementById('requirementId').value = '';
+            document.querySelector('.card-header h3').textContent = '➕ New Job Requirement';
+            document.getElementById('submitText').textContent = '📤 Submit Requirement';
+        }
+    </script>
+</body>
+</html>
 
