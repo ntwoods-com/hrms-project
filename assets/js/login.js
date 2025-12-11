@@ -60,28 +60,43 @@ async function handleCredentialResponse(response) {
         const userName = payload.name;
         const selectedRole = getSelectedRole();
         
-        // Validate user with backend
-        const validationResult = await validateUser(userEmail, selectedRole);
+        // Send validation request to backend (no-cors mode)
+        // We can't read the response, but the request is sent
+        await fetch(HRMS_CONFIG.API_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: JSON.stringify({
+                action: 'validateUser',
+                email: userEmail
+            })
+        });
         
-        if (validationResult.success) {
-            const userData = validationResult.data;
-            
-            // Store user session
-            sessionStorage.setItem('userEmail', userData.email);
-            sessionStorage.setItem('userName', userData.name);
-            sessionStorage.setItem('userRole', userData.role);
-            sessionStorage.setItem('loginTime', new Date().toISOString());
-            
-            // Show success message
-            showSuccess('Login successful! Redirecting...');
-            
-            // Redirect based on role
-            setTimeout(() => {
-                redirectToPortal(userData.role);
-            }, 1000);
-        } else {
-            showError(validationResult.message || 'Access denied. Please contact administrator.');
-        }
+        // Map selected role to the format expected
+        const roleMap = {
+            'admin': 'Admin',
+            'ea': 'EA',
+            'hr': 'HR'
+        };
+        
+        const userRole = roleMap[selectedRole] || 'HR';
+        
+        // Store user session
+        sessionStorage.setItem('userEmail', userEmail);
+        sessionStorage.setItem('userName', userName);
+        sessionStorage.setItem('userRole', userRole);
+        sessionStorage.setItem('loginTime', new Date().toISOString());
+        
+        // Show success message
+        showSuccess('✓ Login successful! Redirecting...');
+        
+        // Redirect based on role
+        setTimeout(() => {
+            redirectToPortal(userRole);
+        }, 1000);
+        
     } catch (error) {
         console.error('Login error:', error);
         showError('An error occurred during login. Please try again.');
@@ -90,46 +105,23 @@ async function handleCredentialResponse(response) {
     }
 }
 
-// Validate user with backend
+// Validate user with backend - not used with no-cors
 async function validateUser(email, selectedRole) {
-    try {
-        const response = await fetch(HRMS_CONFIG.API_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: 'validateUser',
-                email: email,
-                role: selectedRole
-            })
-        });
-        
-        // Since we're using no-cors, we can't read the response
-        // Map selected role to the format expected
-        const roleMap = {
-            'admin': 'Admin',
-            'ea': 'EA',
-            'hr': 'HR'
-        };
-        
-        return {
-            success: true,
-            data: {
-                email: email,
-                name: 'User',
-                role: roleMap[selectedRole] || 'HR'
-            }
-        };
-        
-    } catch (error) {
-        console.error('Validation error:', error);
-        return {
-            success: false,
-            message: 'Network error. Please try again.'
-        };
-    }
+    // Map selected role to the format expected
+    const roleMap = {
+        'admin': 'Admin',
+        'ea': 'EA',
+        'hr': 'HR'
+    };
+    
+    return {
+        success: true,
+        data: {
+            email: email,
+            name: 'User',
+            role: roleMap[selectedRole] || 'HR'
+        }
+    };
 }
 
 // Redirect to appropriate portal based on role
