@@ -211,7 +211,7 @@
             requirements.forEach((req) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${req.id}</td>
+                    <td>${req.reqID || req.id}</td>
                     <td>${req.jobTitle || req.jobRole}</td>
                     <td><span class="badge badge-info">${req.jobRole}</span></td>
                     <td>${formatDate(req.raisedDate)}</td>
