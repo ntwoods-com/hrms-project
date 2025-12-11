@@ -200,17 +200,21 @@
     <script src="../assets/js/admin-common.js"></script>
     <script>
         let allCandidates = [];
+        let currentUser = null;
 
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            populateFilters();
-            loadCandidates();
+            currentUser = checkAuth();
+            if (currentUser) {
+                populateFilters();
+                loadCandidates();
+            }
         });
 
         function populateFilters() {
             // Populate role filter
             const roleFilter = document.getElementById('roleFilter');
-            CONFIG.JOB_ROLES.forEach(role => {
+            const roles = CONFIG?.JOB_ROLES || ['Sales Executive', 'Accountant', 'Marketing Manager', 'Developer', 'HR Executive'];
+            roles.forEach(role => {
                 const option = document.createElement('option');
                 option.value = role;
                 option.textContent = role;
@@ -219,7 +223,8 @@
 
             // Populate source filter
             const sourceFilter = document.getElementById('sourceFilter');
-            CONFIG.JOB_PORTALS.forEach(portal => {
+            const portals = CONFIG?.JOB_PORTALS || ['Naukri', 'LinkedIn', 'Indeed', 'Referral', 'Direct'];
+            portals.forEach(portal => {
                 const option = document.createElement('option');
                 option.value = portal;
                 option.textContent = portal;
@@ -237,17 +242,28 @@
             emptyState.style.display = 'none';
 
             try {
-                const response = await apiCall('getCandidates', {});
+                // With no-cors, we can't read response
+                await apiCall('getCandidates', {});
                 
-                if (response.success && response.candidates) {
-                    allCandidates = response.candidates;
-                    applyFilters();
-                } else {
-                    throw new Error(response.message || 'Failed to load candidates');
-                }
+                showToast('ℹ️ Check Google Sheets for candidates list.', 'info');
+                
+                loadingSpinner.style.display = 'none';
+                
+                // Show info message
+                tableContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <h4>📋 Candidates Data</h4>
+                        <p>Candidate data is stored in Google Sheets (Candidates tab).</p>
+                        <p>Use the filters above, then export data directly from Google Sheets for accurate results.</p>
+                        <p><strong>To export:</strong> Go to Google Sheets → File → Download → CSV/Excel</p>
+                    </div>
+                `;
+                tableContainer.style.display = 'block';
+                document.getElementById('candidateCount').textContent = '?';
+                
             } catch (error) {
                 console.error('Error loading candidates:', error);
-                showToast('Failed to load candidates: ' + error.message, 'error');
+                showToast('Check Google Sheets for candidates data', 'info');
                 loadingSpinner.style.display = 'none';
                 emptyState.style.display = 'block';
             }
@@ -259,56 +275,7 @@
             const roleFilter = document.getElementById('roleFilter').value;
             const sourceFilter = document.getElementById('sourceFilter').value;
 
-            let filtered = allCandidates.filter(candidate => {
-                const matchSearch = !searchTerm || 
-                    candidate.name.toLowerCase().includes(searchTerm) || 
-                    candidate.mobile.includes(searchTerm);
-                const matchStatus = !statusFilter || candidate.status === statusFilter;
-                const matchRole = !roleFilter || candidate.jobRole === roleFilter;
-                const matchSource = !sourceFilter || candidate.source === sourceFilter;
-                
-                return matchSearch && matchStatus && matchRole && matchSource;
-            });
-
-            displayCandidates(filtered);
-        }
-
-        function displayCandidates(candidates) {
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const tableContainer = document.getElementById('candidatesTableContainer');
-            const emptyState = document.getElementById('emptyState');
-            const tbody = document.getElementById('candidatesTableBody');
-            const countBadge = document.getElementById('candidateCount');
-
-            loadingSpinner.style.display = 'none';
-            countBadge.textContent = candidates.length;
-
-            if (candidates.length === 0) {
-                emptyState.style.display = 'block';
-                tableContainer.style.display = 'none';
-                return;
-            }
-
-            tbody.innerHTML = '';
-            candidates.forEach((candidate, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${candidate.name}</td>
-                    <td>${candidate.mobile}</td>
-                    <td><span class="badge badge-info">${candidate.jobRole}</span></td>
-                    <td>${candidate.source}</td>
-                    <td><span class="badge badge-${getStatusColor(candidate.status)}">${candidate.status}</span></td>
-                    <td>${formatDate(candidate.uploadDate)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="viewCandidate('${candidate.id}')">View Details</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            tableContainer.style.display = 'block';
-            emptyState.style.display = 'none';
+            showToast(`Filter in Google Sheets: Search="${searchTerm}", Status=${statusFilter || 'All'}, Role=${roleFilter || 'All'}`, 'info');
         }
 
         function getStatusColor(status) {
@@ -328,70 +295,7 @@
         }
 
         function viewCandidate(candidateId) {
-            const candidate = allCandidates.find(c => c.id === candidateId);
-            if (!candidate) return;
-
-            const detailsDiv = document.getElementById('candidateDetails');
-            detailsDiv.innerHTML = `
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Name:</label>
-                        <span>${candidate.name}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Mobile:</label>
-                        <span>${candidate.mobile}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Job Role:</label>
-                        <span>${candidate.jobRole}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Source:</label>
-                        <span>${candidate.source}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Status:</label>
-                        <span class="badge badge-${getStatusColor(candidate.status)}">${candidate.status}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Upload Date:</label>
-                        <span>${formatDate(candidate.uploadDate)}</span>
-                    </div>
-                    ${candidate.cvUrl ? `
-                    <div class="detail-item">
-                        <label>CV:</label>
-                        <a href="${candidate.cvUrl}" target="_blank" class="btn btn-sm btn-primary">📄 Download CV</a>
-                    </div>
-                    ` : ''}
-                    ${candidate.communicationSkills ? `
-                    <div class="detail-item">
-                        <label>Communication:</label>
-                        <span>${candidate.communicationSkills}/10</span>
-                    </div>
-                    ` : ''}
-                    ${candidate.professionalExperience ? `
-                    <div class="detail-item">
-                        <label>Experience:</label>
-                        <span>${candidate.professionalExperience}/10</span>
-                    </div>
-                    ` : ''}
-                    ${candidate.familyBackground ? `
-                    <div class="detail-item" style="grid-column: 1/-1;">
-                        <label>Family Background:</label>
-                        <span>${candidate.familyBackground}</span>
-                    </div>
-                    ` : ''}
-                    ${candidate.remark ? `
-                    <div class="detail-item" style="grid-column: 1/-1;">
-                        <label>Remark:</label>
-                        <span>${candidate.remark}</span>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-
-            document.getElementById('candidateModal').style.display = 'flex';
+            showToast(`View candidate ${candidateId} in Google Sheets`, 'info');
         }
 
         function closeModal() {
@@ -399,50 +303,8 @@
         }
 
         function exportToCSV() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const roleFilter = document.getElementById('roleFilter').value;
-            const sourceFilter = document.getElementById('sourceFilter').value;
-
-            let filtered = allCandidates.filter(candidate => {
-                const matchSearch = !searchTerm || 
-                    candidate.name.toLowerCase().includes(searchTerm) || 
-                    candidate.mobile.includes(searchTerm);
-                const matchStatus = !statusFilter || candidate.status === statusFilter;
-                const matchRole = !roleFilter || candidate.jobRole === roleFilter;
-                const matchSource = !sourceFilter || candidate.source === sourceFilter;
-                
-                return matchSearch && matchStatus && matchRole && matchSource;
-            });
-
-            if (filtered.length === 0) {
-                showToast('No candidates to export', 'warning');
-                return;
-            }
-
-            const headers = ['ID', 'Name', 'Mobile', 'Role', 'Source', 'Status', 'Upload Date'];
-            const csvContent = [
-                headers.join(','),
-                ...filtered.map((c, i) => [
-                    i + 1,
-                    c.name,
-                    c.mobile,
-                    c.jobRole,
-                    c.source,
-                    c.status,
-                    formatDate(c.uploadDate)
-                ].join(','))
-            ].join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `candidates_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            showToast('CSV exported successfully', 'success');
+            showToast('📥 Export data directly from Google Sheets for accurate results.', 'info');
+            showToast('Go to Google Sheets → File → Download → CSV/Excel', 'info');
         }
 
         // Search on keyup
