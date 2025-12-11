@@ -32,25 +32,30 @@ async function apiCall(action, data = {}) {
         
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'no-cors', // Use no-cors mode for POST requests
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
         
-        // With no-cors, we can't read the response
-        // Show confirmation message instead
+        // With no-cors, we cannot read the server response
+        // Show toast notification and return generic success
+        showToast('✅ Request submitted successfully!', 'success');
+        
         return {
             success: true,
-            message: 'Request sent successfully'
+            message: 'Request sent to backend successfully',
+            data: null
         };
         
     } catch (error) {
         console.error('API Error:', error);
+        showToast('❌ Network error occurred', 'error');
         return {
             success: false,
-            message: 'Network error occurred'
+            message: 'Network error occurred',
+            data: null
         };
     }
 }
