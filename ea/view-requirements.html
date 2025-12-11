@@ -142,10 +142,10 @@
         let allRequirements = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            checkAuth().then(user => {
-                currentUser = user;
+            currentUser = checkAuth();
+            if (currentUser) {
                 loadRequirements();
-            });
+            }
         });
 
         async function loadRequirements() {
